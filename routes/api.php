@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\GroupController;
+use App\Http\Controllers\Api\GroupMemberController;
 use App\Http\Controllers\Api\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,7 +14,8 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/groups', [GroupController::class, 'index']);
@@ -21,6 +23,11 @@ Route::post('/login', [AuthController::class, 'login']);
     Route::get('/groups/{group}', [GroupController::class, 'show']);
     Route::put('/groups/{group}', [GroupController::class, 'update']);
     Route::delete('/groups/{group}', [GroupController::class, 'destroy']);
+
+    Route::get('/groups/{group}/members', [GroupMemberController::class, 'index']);
+    Route::post('/groups/{group}/members', [GroupMemberController::class, 'store']);
+    Route::put('/groups/{group}/members/{member}', [GroupMemberController::class, 'update']);
+    Route::delete('/groups/{group}/members/{member}', [GroupMemberController::class, 'destroy']);
 
     Route::get('/accounts', [AccountController::class, 'index']);
     Route::post('/accounts', [AccountController::class, 'store']);
@@ -40,4 +47,4 @@ Route::post('/login', [AuthController::class, 'login']);
     Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy']);
 
     Route::get('/analytics/summary', [AnalyticsController::class, 'summary']);
-
+});

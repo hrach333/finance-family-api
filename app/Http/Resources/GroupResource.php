@@ -14,6 +14,8 @@ class GroupResource extends JsonResource
             'name' => $this->name,
             'baseCurrency' => $this->base_currency,
             'ownerId' => $this->owner_id,
+            'membersCount' => $this->whenCounted('groupMembers'),
+            'role' => $this->whenPivotLoaded('group_members', fn () => $this->pivot->role),
         ];
     }
 }

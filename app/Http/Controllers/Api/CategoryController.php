@@ -8,19 +8,24 @@ use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
-use App\Models\FinanceGroup;
+use App\Support\AuthorizesFinanceGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
+    use AuthorizesFinanceGroup;
+
     public function index(Request $request)
     {
         $groupId = (int) $request->query('groupId');
         $this->authorizeGroup($request, $groupId);
 
         $query = Category::query()->where('group_id', $groupId);
-        if ($request->filled('type')) $query->where('type', CategoryType::fromFrontend($request->string('type')->toString()));
+
+        if ($request->filled('type')) {
+            $query->where('type', CategoryType::fromFrontend($request->string('type')->toString()));
+        }
 
         return CategoryResource::collection($query->orderBy('id')->get());
     }
@@ -45,11 +50,19 @@ class CategoryController extends Controller
         $this->authorizeGroup($request, $category->group_id);
 
         $data = [];
-        if ($request->filled('type')) $data['type'] = CategoryType::fromFrontend($request->string('type')->toString());
-        if ($request->filled('name')) $data['name'] = $request->string('name')->toString();
+
+        if ($request->filled('type')) {
+            $data['type'] = CategoryType::fromFrontend($request->string('type')->toString());
+        }
+
+        if ($request->filled('name')) {
+            $data['name'] = $request->string('name')->toString();
+        }
+
         if ($request->has('iconKey')) {
-        $data['icon_key'] = $request->input('iconKey');
-    }
+            $data['icon_key'] = $request->input('iconKey');
+        }
+
         $category->update($data);
 
         return new CategoryResource($category);
@@ -61,14 +74,5 @@ class CategoryController extends Controller
         $category->delete();
 
         return response()->json(['message' => 'Категория удалена.']);
-    }
-
-    protected function authorizeGroup(Request $request, int $groupId): void
-    {
-        abort_unless(
-            FinanceGroup::query()->where('id', $groupId)->exists(),
-            403,
-            'Нет доступа к группе.'
-        );
     }
 }

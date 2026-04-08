@@ -33,4 +33,9 @@ class User extends Authenticatable
             ->withPivot('role')
             ->withTimestamps();
     }
+
+    public function groupMemberships()
+    {
+        return $this->hasMany(GroupMember::class, 'user_id');
+    }
 }

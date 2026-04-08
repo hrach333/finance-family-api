@@ -7,14 +7,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
-use App\Models\FinanceGroup;
 use App\Models\Transaction;
 use App\Services\TransactionService;
+use App\Support\AuthorizesFinanceGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TransactionController extends Controller
 {
+    use AuthorizesFinanceGroup;
+
     public function __construct(private readonly TransactionService $transactionService)
     {
     }
@@ -26,11 +28,25 @@ class TransactionController extends Controller
 
         $query = Transaction::query()->with(['account', 'category', 'creator', 'transferAccount'])->where('group_id', $groupId);
 
-        if ($request->filled('accountId')) $query->where('account_id', (int) $request->query('accountId'));
-        if ($request->filled('categoryId')) $query->where('category_id', (int) $request->query('categoryId'));
-        if ($request->filled('type')) $query->where('type', TransactionType::fromFrontend((string) $request->query('type')));
-        if ($request->filled('startDate')) $query->whereDate('transaction_date', '>=', (string) $request->query('startDate'));
-        if ($request->filled('endDate')) $query->whereDate('transaction_date', '<=', (string) $request->query('endDate'));
+        if ($request->filled('accountId')) {
+            $query->where('account_id', (int) $request->query('accountId'));
+        }
+
+        if ($request->filled('categoryId')) {
+            $query->where('category_id', (int) $request->query('categoryId'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', TransactionType::fromFrontend((string) $request->query('type')));
+        }
+
+        if ($request->filled('startDate')) {
+            $query->whereDate('transaction_date', '>=', (string) $request->query('startDate'));
+        }
+
+        if ($request->filled('endDate')) {
+            $query->whereDate('transaction_date', '<=', (string) $request->query('endDate'));
+        }
 
         return TransactionResource::collection($query->orderByDesc('transaction_date')->orderByDesc('id')->get());
     }
@@ -69,15 +85,42 @@ class TransactionController extends Controller
         $this->authorizeGroup($request, $transaction->group_id);
 
         $data = [];
-        if ($request->filled('accountId')) $data['account_id'] = $request->integer('accountId');
-        if ($request->has('createdBy')) $data['created_by'] = $request->integer('createdBy') ?: null;
-        if ($request->filled('type')) $data['type'] = TransactionType::fromFrontend($request->string('type')->toString());
-        if ($request->filled('amount')) $data['amount'] = $request->input('amount');
-        if ($request->filled('currency')) $data['currency'] = strtoupper($request->string('currency')->toString());
-        if ($request->has('categoryId')) $data['category_id'] = $request->integer('categoryId') ?: null;
-        if ($request->has('transferAccountId')) $data['transfer_account_id'] = $request->integer('transferAccountId') ?: null;
-        if ($request->filled('transactionDate')) $data['transaction_date'] = $request->string('transactionDate')->toString();
-        if ($request->has('comment')) $data['comment'] = $request->input('comment');
+
+        if ($request->filled('accountId')) {
+            $data['account_id'] = $request->integer('accountId');
+        }
+
+        if ($request->has('createdBy')) {
+            $data['created_by'] = $request->integer('createdBy') ?: null;
+        }
+
+        if ($request->filled('type')) {
+            $data['type'] = TransactionType::fromFrontend($request->string('type')->toString());
+        }
+
+        if ($request->filled('amount')) {
+            $data['amount'] = $request->input('amount');
+        }
+
+        if ($request->filled('currency')) {
+            $data['currency'] = strtoupper($request->string('currency')->toString());
+        }
+
+        if ($request->has('categoryId')) {
+            $data['category_id'] = $request->integer('categoryId') ?: null;
+        }
+
+        if ($request->has('transferAccountId')) {
+            $data['transfer_account_id'] = $request->integer('transferAccountId') ?: null;
+        }
+
+        if ($request->filled('transactionDate')) {
+            $data['transaction_date'] = $request->string('transactionDate')->toString();
+        }
+
+        if ($request->has('comment')) {
+            $data['comment'] = $request->input('comment');
+        }
 
         $updated = $this->transactionService->update($transaction, $data);
 
@@ -90,14 +133,5 @@ class TransactionController extends Controller
         $this->transactionService->delete($transaction);
 
         return response()->json(['message' => 'Операция удалена.']);
-    }
-
-    protected function authorizeGroup(Request $request, int $groupId): void
-    {
-        abort_unless(
-            FinanceGroup::query()->where('id', $groupId)->exists(),
-            403,
-            'Нет доступа к группе.'
-        );
     }
 }
