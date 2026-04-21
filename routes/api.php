@@ -7,12 +7,14 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\GroupMemberController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Auth\YandexOAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => response()->json(['status' => 'ok']));
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/auth/yandex/mobile', [YandexOAuthController::class, 'mobile']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);

@@ -67,4 +67,44 @@ class YandexOAuthTest extends TestCase
 
         $this->assertSame(1, PersonalAccessToken::query()->count());
     }
+
+    public function test_mobile_endpoint_creates_user_and_returns_token_and_user(): void
+    {
+        Http::fake([
+            'https://login.yandex.ru/info*' => Http::response([
+                'id' => 'ya-888',
+                'default_email' => 'mobile@example.com',
+                'real_name' => 'Mobile User',
+            ]),
+        ]);
+
+        $response = $this->postJson('/api/auth/yandex/mobile', [
+            'oauthToken' => 'y0_AgAAA...',
+        ]);
+
+        $response->assertOk()->assertJsonStructure([
+            'token',
+            'user' => ['id', 'name', 'email', 'yandex_id'],
+        ]);
+
+        $this->assertSame('mobile@example.com', $response->json('user.email'));
+
+        $user = User::query()->first();
+        $this->assertNotNull($user);
+        $this->assertSame('ya-888', $user->yandex_id);
+        $this->assertSame('mobile@example.com', $user->email);
+        $this->assertSame('Mobile User', $user->name);
+
+        $this->assertSame(1, PersonalAccessToken::query()->count());
+    }
+
+    public function test_mobile_endpoint_requires_oauth_token_field(): void
+    {
+        $response = $this->postJson('/api/auth/yandex/mobile', [
+            'token' => 'bad-field-name',
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors(['oauthToken']);
+    }
+
 }

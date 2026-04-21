@@ -12,3 +12,4 @@ Route::get('/', function () {
 
 Route::get('/auth/yandex/redirect', [YandexOAuthController::class, 'redirect']);
 Route::get('/auth/yandex/callback', [YandexOAuthController::class, 'callback']);
+

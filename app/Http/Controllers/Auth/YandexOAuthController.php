@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -70,8 +71,48 @@ class YandexOAuthController extends Controller
 
         $accessToken = (string) $tokenResponse->json('access_token');
 
+        $user = $this->resolveUserByYandexToken($accessToken);
+
+        $user->tokens()->delete();
+        $mobileToken = $user->createToken('mobile')->plainTextToken;
+
+        $mobileRedirect = $this->resolveMobileRedirect($request);
+
+        if ($mobileRedirect === null) {
+            throw new HttpException(422, 'Не передан mobile_redirect для возврата в приложение.');
+        }
+
+        $redirectToApp = $this->buildRedirectUrl($mobileRedirect, [
+            'token' => $mobileToken,
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'name' => $user->name,
+        ]);
+
+        return redirect()->away($redirectToApp);
+    }
+
+    public function mobile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'oauthToken' => ['required', 'string'],
+        ]);
+
+        $user = $this->resolveUserByYandexToken((string) $validated['oauthToken']);
+
+        $user->tokens()->delete();
+        $token = $user->createToken('mobile')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $user,
+        ]);
+    }
+
+    private function resolveUserByYandexToken(string $oauthToken): User
+    {
         $profileResponse = Http::withHeaders([
-            'Authorization' => 'OAuth '.$accessToken,
+            'Authorization' => 'OAuth '.$oauthToken,
         ])->get('https://login.yandex.ru/info', [
             'format' => 'json',
         ]);
@@ -118,23 +159,7 @@ class YandexOAuthController extends Controller
             ]);
         }
 
-        $user->tokens()->delete();
-        $mobileToken = $user->createToken('mobile')->plainTextToken;
-
-        $mobileRedirect = $this->resolveMobileRedirect($request);
-
-        if ($mobileRedirect === null) {
-            throw new HttpException(422, 'Не передан mobile_redirect для возврата в приложение.');
-        }
-
-        $redirectToApp = $this->buildRedirectUrl($mobileRedirect, [
-            'token' => $mobileToken,
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'name' => $user->name,
-        ]);
-
-        return redirect()->away($redirectToApp);
+        return $user;
     }
 
     private function resolveMobileRedirect(Request $request): ?string
