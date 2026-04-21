@@ -14,6 +14,8 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']));
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/yandex/mobile', [YandexOAuthController::class, 'mobile']);
 
 Route::middleware('auth:sanctum')->group(function () {
