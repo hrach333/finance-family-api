@@ -101,6 +101,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'code' => ['required', 'digits:6'],
+            'password' => ['required', 'string', 'min:8'],
         ]);
 
         $email = mb_strtolower($validated['email']);
@@ -126,6 +127,10 @@ class AuthController extends Controller
                 'message' => 'Неверный код или email.',
             ], 422);
         }
+
+        $user->forceFill([
+            'password' => $validated['password'],
+        ])->save();
 
         DB::table('password_reset_tokens')->where('email', $email)->delete();
 
